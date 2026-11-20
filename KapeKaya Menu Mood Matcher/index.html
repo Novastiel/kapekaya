@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KapeKaya • AI Menu Mood Matcher for Kape Kapampangan</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fraunces (Artisanal Display) & Plus Jakarta Sans (Clean UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Fraunces"', 'serif'],
+          },
+          colors: {
+            espresso: {
+              950: '#1E130C',
+              900: '#2C1B12',
+              800: '#42291C',
+              700: '#5C3A28',
+              600: '#7C4E37',
+              100: '#F5ECE6',
+              50: '#FAF6F3',
+            },
+            pandan: {
+              700: '#2E5A44',
+              600: '#3B7357',
+              500: '#4C916E',
+              100: '#E6F2EC',
+              50: '#F3F9F6',
+            },
+            cream: {
+              100: '#FBF8F3',
+              200: '#F4EDE2',
+              300: '#E7DCCB',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FBF8F3;
+      color: #2C1B12;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #F4EDE2;
+      border-radius: 999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #C8B69E;
+      border-radius: 999px;
+    }
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-soft {
+      animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-pandan-600 selection:text-white">
+
+  <!-- Top Navigation & Live AI Status Banner -->
+  <header class="sticky top-0 z-30 bg-espresso-900 text-cream-100 shadow-md border-b border-espresso-800">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-espresso-600 flex items-center justify-center shadow-inner text-xl">
+          ☕
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-serif font-bold text-lg sm:text-xl tracking-tight text-white">KapeKaya</h1>
+            <span class="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-pandan-600 text-white">PTF50 AI</span>
+          </div>
+          <p class="text-xs text-cream-300">Kape Kapampangan • Angeles City, Pampanga</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs & Order Counter -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button onclick="switchTab('matcher')" id="tab-btn-matcher" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500 text-espresso-950 transition shadow-sm">
+          Mood Matcher
+        </button>
+        <button onclick="switchTab('menu')" id="tab-btn-menu" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-cream-200 hover:bg-espresso-800 transition">
+          Full Menu
+        </button>
+        <button onclick="switchTab('defense')" id="tab-btn-defense" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-cream-200 hover:bg-espresso-800 transition flex items-center gap-1">
+          <span>🧠 How AI Works</span>
+        </button>
+        <button onclick="toggleOrderDrawer()" class="relative ml-1 p-2 rounded-xl bg-espresso-800 hover:bg-espresso-700 text-cream-100 transition" aria-label="View Order Basket">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+          </svg>
+          <span id="basket-badge" class="hidden absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pandan-500 text-white text-[11px] font-bold flex items-center justify-center shadow">0</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live In-Browser Transformers.js Engine Status Bar -->
+    <div class="bg-espresso-950/90 border-t border-espresso-800/80 px-4 py-1.5">
+      <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+        <div class="flex items-center gap-2">
+          <span id="ai-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse-soft shrink-0"></span>
+          <span id="ai-status-text" class="text-cream-200 font-medium">Initializing Transformers.js (all-MiniLM-L6-v2) in browser...</span>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] text-cream-300">
+          <span id="ai-progress-label" class="font-mono text-amber-300">0%</span>
+          <span class="hidden sm:inline">•</span>
+          <span class="text-pandan-100">🔒 Zero API Keys • 100% On-Device</span>
+        </div>
+      </div>
+      <!-- Thin Progress Bar -->
+      <div id="ai-progress-track" class="max-w-5xl mx-auto mt-1 h-1 bg-espresso-800 rounded-full overflow-hidden">
+        <div id="ai-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-pandan-500 transition-all duration-300" style="width: 8%"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification Banner (Replaces alert()) -->
+  <div id="toast-banner" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 hidden bg-espresso-900 text-white px-4 py-2.5 rounded-2xl shadow-xl border border-espresso-700 text-sm font-medium flex items-center gap-2 max-w-[92vw]">
+    <span id="toast-icon">✅</span>
+    <span id="toast-message">Added to order!</span>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
+
+    <!-- ========================================================= -->
+    <!-- VIEW 1: AI MENU MOOD MATCHER (PRIMARY CUSTOMER VIEW)      -->
+    <!-- ========================================================= -->
+    <section id="view-matcher" class="space-y-6">
+      <!-- Hero & Natural Language Prompt Card -->
+      <div class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-cream-300">
+        <div class="max-w-2xl">
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-pandan-700 bg-pandan-100 px-3 py-1 rounded-full mb-2">
+            <span>✨</span> AI Barista & Craving Assistant
+          </span>
+          <h2 class="font-serif text-2xl sm:text-3xl font-bold text-espresso-900 leading-tight">
+            What are you craving or feeling today?
+          </h2>
+          <p class="text-sm text-espresso-700 mt-1.5">
+            Describe your mood, taste, caffeine preference, or budget in English or Taglish. Our in-browser neural network matches your vibe to Kape Kapampangan's menu.
+          </p>
+        </div>
+
+        <!-- Prompt Form -->
+        <div class="mt-5 space-y-4">
+          <div class="relative">
+            <textarea
+              id="mood-input"
+              rows="2"
+              placeholder="e.g., Sweet, cold, no coffee, under ₱150 — or 'pagod na ako sa thesis, kailangan ng matapang na kape'..."
+              class="w-full rounded-2xl border-2 border-cream-300 bg-cream-100/70 focus:bg-white focus:border-espresso-700 focus:outline-none p-4 pr-12 text-sm sm:text-base text-espresso-900 placeholder:text-espresso-600/60 transition resize-none"
+            ></textarea>
+            <button
+              onclick="clearPrompt()"
+              title="Clear text"
+              class="absolute top-3 right-3 p-1.5 rounded-xl text-espresso-600 hover:bg-cream-200 transition text-xs font-semibold"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Quick Sample Prompts (PTF50 Demo Ready) -->
+          <div>
+            <p class="text-xs font-semibold text-espresso-600 mb-2">Tap a sample customer craving:</p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="applySamplePrompt('Sweet, cold, no coffee, under ₱150')" class="text-xs bg-cream-200/80 hover:bg-espresso-100 text-espresso-900 font-medium px-3 py-1.5 rounded-xl border border-cream-300 transition text-left">
+                🧊 "Sweet, cold, no coffee, under ₱150"
+              </button>
+              <button onclick="applySamplePrompt('Pagod na ako sa thesis, kailangan ng matapang na iced coffee max 145')" class="text-xs bg-cream-200/80 hover:bg-espresso-100 text-espresso-900 font-medium px-3 py-1.5 rounded-xl border border-cream-300 transition text-left">
+                ⚡ "Pagod na sa thesis, matapang na iced coffee max ₱145"
+              </button>
+              <button onclick="applySamplePrompt('Refreshing fruity drink for hot Pampanga afternoon under 130')" class="text-xs bg-cream-200/80 hover:bg-espresso-100 text-espresso-900 font-medium px-3 py-1.5 rounded-xl border border-cream-300 transition text-left">
+                🥭 "Refreshing fruity drink for hot afternoon under ₱130"
+              </button>
+              <button onclick="applySamplePrompt('Warm comfort drink and sweet Kapampangan pastry combo under 210')" class="text-xs bg-cream-200/80 hover:bg-espresso-100 text-espresso-900 font-medium px-3 py-1.5 rounded-xl border border-cream-300 transition text-left">
+                🥐 "Warm comfort drink + pastry combo under ₱210"
+              </button>
+            </div>
+          </div>
+
+          <!-- Optional Budget Cap Slider & Match Button -->
+          <div class="pt-2 border-t border-cream-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex-1 max-w-sm">
+              <div class="flex justify-between text-xs font-semibold text-espresso-800 mb-1">
+                <label for="budget-slider">Optional Max Budget Cap:</label>
+                <span id="budget-display" class="text-pandan-700 font-bold">Auto-detect from text (or ₱250)</span>
+              </div>
+              <input
+                id="budget-slider"
+                type="range"
+                min="85"
+                max="250"
+                step="5"
+                value="250"
+                oninput="updateBudgetLabel(this.value)"
+                class="w-full accent-espresso-800 cursor-pointer h-2 bg-cream-200 rounded-lg"
+              />
+              <div class="flex justify-between text-[10px] text-espresso-600 mt-0.5">
+                <span>₱85</span>
+                <span>₱150</span>
+                <span>₱250 (Any)</span>
+              </div>
+            </div>
+
+            <button
+              id="match-btn"
+              onclick="runAIMatch()"
+              class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-espresso-900 hover:bg-espresso-800 active:scale-[0.99] text-white font-semibold text-sm sm:text-base shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>✨ Match My Mood with AI</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Analysis & Recommendation Results Container -->
+      <div id="results-section" class="hidden space-y-4">
+        <!-- Extracted Intent & Inference Telemetry Bar -->
+        <div class="bg-pandan-50 border border-pandan-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-pandan-700">AI Understood Your Request:</span>
+              <span id="inference-time-badge" class="text-[11px] font-mono bg-white px-2 py-0.5 rounded-md border border-pandan-500/30 text-espresso-800">
+                Inference: 42ms
+              </span>
+            </div>
+            <div id="detected-intents" class="flex flex-wrap gap-1.5">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+          <div class="text-xs text-espresso-700 shrink-0">
+            Engine: <strong id="engine-used-label" class="text-espresso-900">Transformers.js Neural Embeddings</strong>
+          </div>
+        </div>
+
+        <!-- Combo Suggestion Banner (Shown when user asks for drink + pastry/food) -->
+        <div id="combo-banner" class="hidden bg-gradient-to-r from-amber-50 to-cream-200 border border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-sm">
+          <!-- Populated dynamically if food/combo is detected -->
+        </div>
+
+        <!-- Top 3 Recommended Cards Grid -->
+        <div>
+          <h3 class="font-serif text-xl font-bold text-espresso-900 mb-3 flex items-center gap-2">
+            <span>🏆 Top AI Recommendations for You</span>
+          </h3>
+          <div id="recommendations-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Recommendation cards injected here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 2: FULL CAFÉ MENU (BROWSE & COMPARE)                 -->
+    <!-- ========================================================= -->
+    <section id="view-menu" class="hidden space-y-5">
+      <div class="bg-white rounded-3xl p-5 sm:p-6 border border-cream-300 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="font-serif text-2xl font-bold text-espresso-900">Kape Kapampangan Menu</h2>
+            <p class="text-sm text-espresso-700">Authentic Angeles City café offerings priced for students and locals (₱85 – ₱180).</p>
+          </div>
+          <!-- Category Filter Pills -->
+          <div class="flex flex-wrap gap-1.5" id="menu-category-filters">
+            <button onclick="filterFullMenu('All')" class="menu-filter-btn active px-3 py-1.5 rounded-xl text-xs font-semibold bg-espresso-900 text-white">All (14)</button>
+            <button onclick="filterFullMenu('Espresso & Coffee')" class="menu-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-cream-200 text-espresso-800 hover:bg-cream-300">Coffee</button>
+            <button onclick="filterFullMenu('Non-Coffee & Matcha')" class="menu-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-cream-200 text-espresso-800 hover:bg-cream-300">Non-Coffee</button>
+            <button onclick="filterFullMenu('Fruit Refreshers')" class="menu-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-cream-200 text-espresso-800 hover:bg-cream-300">Fruit Refreshers</button>
+            <button onclick="filterFullMenu('Kapampangan Pastries')" class="menu-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-cream-200 text-espresso-800 hover:bg-cream-300">Pastries</button>
+          </div>
+        </div>
+
+        <div id="full-menu-grid" class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Full menu cards injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 3: HOW THE AI WORKS & PTF50 USER TESTING PANEL       -->
+    <!-- ========================================================= -->
+    <section id="view-defense" class="hidden space-y-6">
+      <!-- Architecture & Quick Test Explanation (Matches PTF50 Spec Page 1-4) -->
+      <div class="bg-white rounded-3xl p-5 sm:p-7 border border-cream-300 shadow-sm space-y-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-pandan-700 bg-pandan-100 px-3 py-1 rounded-full">
+            PTF50 Final Project Defense & Transparency Panel
+          </span>
+          <h2 class="font-serif text-2xl font-bold text-espresso-900 mt-2">
+            How KapeKaya's In-Browser AI Works
+          </h2>
+          <p class="text-sm text-espresso-700 mt-1">
+            Designed to satisfy the <strong>PTF50 "Quick Test"</strong>: if you remove the neural embedding model, the app cannot understand natural language cravings like <em>"pagod na sa thesis"</em> or <em>"something refreshing without caffeine."</em>
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-2xl bg-cream-100 border border-cream-300">
+            <div class="text-lg mb-1">1️⃣ Neural Embeddings</div>
+            <h3 class="font-bold text-sm text-espresso-900">Transformers.js (all-MiniLM-L6-v2)</h3>
+            <p class="text-xs text-espresso-700 mt-1 leading-relaxed">
+              Converts both the customer's natural language prompt and all 14 menu item descriptions into <strong>384-dimensional dense vectors</strong> directly inside your browser via WebAssembly/ONNX.
+            </p>
+          </div>
+          <div class="p-4 rounded-2xl bg-cream-100 border border-cream-300">
+            <div class="text-lg mb-1">2️⃣ Cosine Similarity + Constraints</div>
+            <h3 class="font-bold text-sm text-espresso-900">Hybrid Semantic & Constraint Scoring</h3>
+            <p class="text-xs text-espresso-700 mt-1 leading-relaxed">
+              Computes vector cosine similarity between mood and drink profiles, then applies hard/soft dietary & budget checks (e.g., extracting <code>₱150</code>, <code>no coffee</code>, or <code>cold</code>).
+            </p>
+          </div>
+          <div class="p-4 rounded-2xl bg-cream-100 border border-cream-300">
+            <div class="text-lg mb-1">3️⃣ Zero API Keys & RA 10173 Safe</div>
+            <h3 class="font-bold text-sm text-espresso-900">₱0 Operating Cost & Private</h3>
+            <p class="text-xs text-espresso-700 mt-1 leading-relaxed">
+              No OpenAI/cloud API keys are stored or called. Customer queries never leave the phone/laptop browser, keeping operating costs at <strong>₱0/month</strong> for Kape Kapampangan.
+            </p>
+          </div>
+        </div>
+
+        <!-- Live Vector Score Inspector Table -->
+        <div class="border border-cream-300 rounded-2xl overflow-hidden">
+          <div class="bg-espresso-900 text-white px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-semibold">Live Model Telemetry & Last Query Vector Scores</span>
+            <span id="telemetry-model-state" class="text-[11px] font-mono text-amber-300">Model: Loading...</span>
+          </div>
+          <div class="p-4 bg-cream-50 overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b border-cream-300 text-espresso-700">
+                  <th class="pb-2 font-semibold">Menu Item</th>
+                  <th class="pb-2 font-semibold">Semantic Similarity</th>
+                  <th class="pb-2 font-semibold">Constraint Boost</th>
+                  <th class="pb-2 font-semibold">Final AI Score</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-table-body" class="divide-y divide-cream-200 text-espresso-900">
+                <tr>
+                  <td colspan="4" class="py-3 text-center text-espresso-600">Run a mood match query on the first tab to inspect live neural similarity scores!</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Built-in PTF50 Section 06: 4-Question User Testing Feedback Form -->
+      <div class="bg-white rounded-3xl p-5 sm:p-7 border border-cream-300 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-espresso-700 bg-cream-200 px-3 py-1 rounded-full">
+              PTF50 Section 06-B Deliverable
+            </span>
+            <h3 class="font-serif text-xl font-bold text-espresso-900 mt-1.5">
+              4-Question User Testing Feedback Form
+            </h3>
+            <p class="text-xs text-espresso-700">
+              Collect quick feedback from 3–5 café customers or classmates during testing, then copy the formatted summary for your Project Report.
+            </p>
+          </div>
+          <button onclick="copyFeedbackSummary()" class="self-start sm:self-center px-3.5 py-2 rounded-xl bg-pandan-600 hover:bg-pandan-700 text-white text-xs font-semibold transition shadow-sm">
+            📋 Copy All Feedback for Report
+          </button>
+        </div>
+
+        <form onsubmit="submitUserFeedback(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label class="block text-xs font-semibold text-espresso-800 mb-1">Tester Role / Alias (with permission)</label>
+            <input id="fb-tester" type="text" required placeholder="e.g., User 1 - AUF Student / Café Regular" class="w-full rounded-xl border border-cream-300 bg-cream-100/60 px-3 py-2 text-sm focus:bg-white focus:border-espresso-700 focus:outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-espresso-800 mb-1">1. Easy to use? (1–5)</label>
+              <select id="fb-q1" class="w-full rounded-xl border border-cream-300 bg-cream-100/60 px-3 py-2 text-sm focus:bg-white focus:outline-none">
+                <option value="5">5 - Very Easy</option>
+                <option value="4">4 - Easy</option>
+                <option value="3">3 - Neutral</option>
+                <option value="2">2 - Confusing</option>
+                <option value="1">1 - Difficult</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-espresso-800 mb-1">2. AI helpful? (1–5)</label>
+              <select id="fb-q2" class="w-full rounded-xl border border-cream-300 bg-cream-100/60 px-3 py-2 text-sm focus:bg-white focus:outline-none">
+                <option value="5">5 - Very Helpful</option>
+                <option value="4">4 - Helpful</option>
+                <option value="3">3 - Okay</option>
+                <option value="2">2 - Off-target</option>
+                <option value="1">1 - Not Helpful</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-espresso-800 mb-1">3. What confused you?</label>
+            <input id="fb-q3" type="text" required placeholder="e.g., None, or waiting 3 seconds for model load" class="w-full rounded-xl border border-cream-300 bg-cream-100/60 px-3 py-2 text-sm focus:bg-white focus:border-espresso-700 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-espresso-800 mb-1">4. What one thing would make it better?</label>
+            <input id="fb-q4" type="text" required placeholder="e.g., Add sugar level option or Kapampangan prompts" class="w-full rounded-xl border border-cream-300 bg-cream-100/60 px-3 py-2 text-sm focus:bg-white focus:border-espresso-700 focus:outline-none" />
+          </div>
+          <div class="sm:col-span-2 flex justify-end">
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-white text-xs font-semibold transition">
+              + Save User Test Entry
+            </button>
+          </div>
+        </form>
+
+        <!-- Saved Feedback Log -->
+        <div id="feedback-log-list" class="space-y-2 pt-2 border-t border-cream-200">
+          <!-- Pre-populated with 1 sample entry so the student sees the format -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SLIDE-OVER ORDER / BASKET DRAWER -->
+  <div id="order-drawer-backdrop" onclick="toggleOrderDrawer()" class="fixed inset-0 bg-espresso-950/50 backdrop-blur-xs z-40 hidden transition-opacity"></div>
+  <aside id="order-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-50 shadow-2xl border-l border-cream-300 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="p-5 bg-espresso-900 text-white flex items-center justify-between">
+      <div>
+        <h3 class="font-serif text-lg font-bold">Your Café Order Tray</h3>
+        <p class="text-xs text-cream-300">Show this summary at Kape Kapampangan counter</p>
+      </div>
+      <button onclick="toggleOrderDrawer()" class="p-2 rounded-xl bg-espresso-800 hover:bg-espresso-700 text-cream-100">
+        ✕
+      </button>
+    </div>
+
+    <div id="order-items-container" class="flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar">
+      <!-- Order items rendered here -->
+    </div>
+
+    <div class="p-5 bg-cream-100 border-t border-cream-300 space-y-3">
+      <div class="flex items-center justify-between text-sm">
+        <span class="text-espresso-700 font-medium">Estimated Counter Total</span>
+        <span id="order-total-price" class="font-serif text-xl font-bold text-espresso-900">₱0</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="clearBasket()" class="py-2.5 px-4 rounded-xl border border-cream-300 bg-white hover:bg-cream-200 text-espresso-800 text-xs font-semibold transition">
+          Clear Tray
+        </button>
+        <button onclick="copyOrderSummary()" class="py-2.5 px-4 rounded-xl bg-pandan-600 hover:bg-pandan-700 text-white text-xs font-semibold transition shadow-sm">
+          📋 Copy Order Slip
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Footer -->
+  <footer class="bg-cream-200/70 border-t border-cream-300 py-4 px-4 mt-8">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-espresso-700">
+      <p><strong>KapeKaya</strong> • Built for <em>Kape Kapampangan</em> (Angeles City) • PTF50 Web-Based AI Development</p>
+      <p>Powered by <strong>Transformers.js</strong> • 100% Free & Client-Side</p>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION LOGIC & TRANSFORMERS.JS IN-BROWSER AI ENGINE              -->
+  <!-- ===================================================================== -->
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+    // Configure Transformers.js to fetch public Hugging Face models directly in browser
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    // ---------------------------------------------------------------------
+    // 1. KAPE KAPAMPANGAN MENU DATASET (14 Authentic Local Items)
+    // ---------------------------------------------------------------------
+    const MENU_ITEMS = [
+      {
+        id: 'spanish-latte',
+        name: 'Kapampangan Spanish Latte',
+        price: 135,
+        category: 'Espresso & Coffee',
+        temp: 'Iced',
+        caffeine: 'Caffeinated',
+        sweetness: 'Sweet & Creamy',
+        emoji: '🧊☕',
+        description: 'Rich double-shot espresso poured over cold milk and sweet condensed milk. Smooth, sweet, creamy iced coffee pick-me-up for studying or afternoon energy.',
+        tags: ['sweet', 'creamy', 'iced', 'cold', 'coffee', 'espresso', 'bestseller']
+      },
+      {
+        id: 'barako-cold-brew',
+        name: 'Matapang Barako Cold Brew',
+        price: 120,
+        category: 'Espresso & Coffee',
+        temp: 'Iced',
+        caffeine: 'Caffeinated',
+        sweetness: 'Unsweetened / Bold',
+        emoji: '⚡🖤',
+        description: '18-hour steeped Batangas & Kapampangan Liberica dark roast coffee. Very strong, bold, high caffeine, zero sugar, bitter and energizing for thesis all-nighters and coding.',
+        tags: ['strong', 'matapang', 'bold', 'bitter', 'iced', 'cold', 'coffee', 'high-caffeine', 'no-sugar']
+      },
+      {
+        id: 'tsokolate-tablea',
+        name: 'Hot Tsokolate Batirol',
+        price: 125,
+        category: 'Non-Coffee & Matcha',
+        temp: 'Hot',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Rich & Sweet',
+        emoji: '🍫☕',
+        description: 'Traditional roasted cacao tablea whisked until frothy and velvety. Warm, comforting, nostalgic Filipino chocolate drink without coffee or espresso.',
+        tags: ['hot', 'warm', 'comfort', 'chocolate', 'cacao', 'sweet', 'no-coffee', 'caffeine-free']
+      },
+      {
+        id: 'iced-tsokolate-latte',
+        name: 'Iced Tablea Choco Milk',
+        price: 130,
+        category: 'Non-Coffee & Matcha',
+        temp: 'Iced',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Sweet & Chocolaty',
+        emoji: '🧊🍫',
+        description: 'Chilled artisan tablea dark chocolate blended with fresh creamy milk over ice. Sweet, cold, refreshing non-coffee chocolate treat for kids and students.',
+        tags: ['cold', 'iced', 'sweet', 'chocolate', 'creamy', 'no-coffee', 'caffeine-free']
+      },
+      {
+        id: 'pandan-matcha',
+        name: 'Iced Buko Pandan Matcha',
+        price: 145,
+        category: 'Non-Coffee & Matcha',
+        temp: 'Iced',
+        caffeine: 'Light Tea Caffeine',
+        sweetness: 'Sweet & Earthy',
+        emoji: '🌿🍵',
+        description: 'Ceremonial Uji matcha layered over fragrant Kapampangan pandan cream and coconut milk. Sweet, cold, earthy, creamy green tea latte with no coffee.',
+        tags: ['cold', 'iced', 'sweet', 'matcha', 'pandan', 'creamy', 'no-coffee']
+      },
+      {
+        id: 'strawberry-milk',
+        name: 'Baguio Strawberry Cream Milk',
+        price: 140,
+        category: 'Non-Coffee & Matcha',
+        temp: 'Iced',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Sweet & Fruity',
+        emoji: '🍓🥛',
+        description: 'House-made chunky strawberry compote swirled with chilled velvety milk. Sweet, cold, fruity, caffeine-free dessert drink with zero coffee.',
+        tags: ['cold', 'iced', 'sweet', 'fruity', 'strawberry', 'milk', 'no-coffee', 'caffeine-free']
+      },
+      {
+        id: 'calamansi-honey-fizz',
+        name: 'Calamansi Honey Sparkler',
+        price: 105,
+        category: 'Fruit Refreshers',
+        temp: 'Iced',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Tangy & Refreshing',
+        emoji: '🍋✨',
+        description: 'Freshly squeezed Philippine calamansi lime, wildflower honey, and sparkling soda over ice. Ultra-refreshing, citrusy, cold thirst-quencher for hot Pampanga afternoons.',
+        tags: ['cold', 'iced', 'refreshing', 'fruity', 'citrus', 'calamansi', 'summer', 'no-coffee', 'caffeine-free', 'budget']
+      },
+      {
+        id: 'mango-passion-cooler',
+        name: 'Guimaras Mango Passion Cooler',
+        price: 125,
+        category: 'Fruit Refreshers',
+        temp: 'Iced',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Sweet & Tropical',
+        emoji: '🥭🧊',
+        description: 'Sweet ripe Philippine mango nectar shaken with tangy passionfruit and ice. Tropical, fruity, cold, caffeine-free refresher for hot weather.',
+        tags: ['cold', 'iced', 'sweet', 'fruity', 'mango', 'refreshing', 'tropical', 'no-coffee', 'caffeine-free']
+      },
+      {
+        id: 'hot-americano',
+        name: 'Classic Hot Americano',
+        price: 95,
+        category: 'Espresso & Coffee',
+        temp: 'Hot',
+        caffeine: 'Caffeinated',
+        sweetness: 'Unsweetened',
+        emoji: '☕🔥',
+        description: 'Double shot of locally roasted Arabica-Robusta espresso topped with hot water. Clean, warm, strong black coffee on a student-friendly budget under 100 pesos.',
+        tags: ['hot', 'warm', 'coffee', 'strong', 'black', 'unsweetened', 'budget']
+      },
+      {
+        id: 'salted-caramel-macchiato',
+        name: 'Iced Salted Caramel Macchiato',
+        price: 155,
+        category: 'Espresso & Coffee',
+        temp: 'Iced',
+        caffeine: 'Caffeinated',
+        sweetness: 'Sweet & Salty',
+        emoji: '🍮🧊',
+        description: 'Cold vanilla milk marked with rich espresso and drizzled with buttery salted caramel sauce. Sweet, indulgent iced coffee favorite.',
+        tags: ['cold', 'iced', 'sweet', 'caramel', 'coffee', 'creamy']
+      },
+      {
+        id: 'hot-vanilla-latte',
+        name: 'Warm Vanilla Bean Latte',
+        price: 130,
+        category: 'Espresso & Coffee',
+        temp: 'Hot',
+        caffeine: 'Caffeinated',
+        sweetness: 'Mildly Sweet',
+        emoji: '🤍☕',
+        description: 'Steamed silky milk poured over smooth espresso and aromatic Madagascar vanilla. Cozy, warm comfort coffee for rainy days or quiet reading.',
+        tags: ['hot', 'warm', 'comfort', 'sweet', 'vanilla', 'coffee', 'creamy']
+      },
+      {
+        id: 'ensaymada',
+        name: 'Kapampangan Quezo de Bola Ensaymada',
+        price: 85,
+        category: 'Kapampangan Pastries',
+        temp: 'Warm',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Sweet & Savory',
+        emoji: '🥐🧀',
+        description: 'Soft, buttery brioche pastry baked fresh in Angeles City, topped with whipped butter, sugar, and aged Quezo de Bola cheese. Perfect snack pairing with hot coffee or tsokolate.',
+        tags: ['pastry', 'food', 'snack', 'bread', 'sweet', 'cheese', 'kapampangan', 'combo']
+      },
+      {
+        id: 'sans-rival-slice',
+        name: 'Classic Cashew Sans Rival',
+        price: 115,
+        category: 'Kapampangan Pastries',
+        temp: 'Chilled',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Sweet & Nutty',
+        emoji: '🍰🥜',
+        description: 'Crisp layers of roasted cashew meringue and rich French buttercream. Iconic Pampanga dessert pastry for sweet cravings.',
+        tags: ['pastry', 'dessert', 'cake', 'food', 'sweet', 'cashew', 'kapampangan', 'combo']
+      },
+      {
+        id: 'pan-de-coco',
+        name: 'Toasted Pan de Coco Brioche',
+        price: 75,
+        category: 'Kapampangan Pastries',
+        temp: 'Warm',
+        caffeine: 'Caffeine-Free',
+        sweetness: 'Sweet Coconut',
+        emoji: '🥥🥖',
+        description: 'Warm pillowy roll filled with sweet caramelized grated coconut bukayo. Affordable traditional Filipino merienda pastry.',
+        tags: ['pastry', 'food', 'snack', 'bread', 'sweet', 'coconut', 'budget', 'combo']
+      }
+    ];
+
+    // ---------------------------------------------------------------------
+    // 2. STATE MANAGEMENT
+    // ---------------------------------------------------------------------
+    let embedder = null;
+    let modelReady = false;
+    let menuEmbeddings = {}; // Cached 384-d vectors for each menu item
+    let basket = [];
+    let currentBudgetCap = 250;
+    let feedbackEntries = [
+      {
+        tester: 'Sample Tester 1 (AUF BSCS Student)',
+        q1: 5,
+        q2: 5,
+        q3: 'Nothing confusing, sample prompts helped me test right away.',
+        q4: 'Show combo suggestions when I ask for snacks + drinks.'
+      }
+    ];
+
+    // ---------------------------------------------------------------------
+    // 3. INITIALIZE IN-BROWSER TRANSFORMERS.JS MODEL
+    // ---------------------------------------------------------------------
+    async function initAIModel() {
+      const statusDot = document.getElementById('ai-status-dot');
+      const statusText = document.getElementById('ai-status-text');
+      const progressLabel = document.getElementById('ai-progress-label');
+      const progressBar = document.getElementById('ai-progress-bar');
+      const telemetryState = document.getElementById('telemetry-model-state');
+
+      try {
+        // Load Xenova/all-MiniLM-L6-v2 (~22MB quantized ONNX model, fast & accurate)
+        embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+          progress_callback: (data) => {
+            if (data.status === 'progress' && data.progress) {
+              const pct = Math.round(data.progress);
+              progressLabel.textContent = `${pct}%`;
+              progressBar.style.width = `${pct}%`;
+              statusText.textContent = `Downloading neural model (${data.file || 'onnx'})...`;
+            } else if (data.status === 'ready') {
+              statusText.textContent = 'Encoding Kape Kapampangan menu vectors...';
+            }
+          }
+        });
+
+        // Pre-compute vector embeddings for all 14 menu items once
+        for (const item of MENU_ITEMS) {
+          const richText = `${item.name}. Category: ${item.category}. Temperature: ${item.temp}. Caffeine: ${item.caffeine}. Flavor: ${item.sweetness}. ${item.description} Keywords: ${item.tags.join(', ')}`;
+          const output = await embedder(richText, { pooling: 'mean', normalize: true });
+          menuEmbeddings[item.id] = output.data;
+        }
+
+        modelReady = true;
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-pandan-500 shrink-0';
+        statusText.textContent = 'AI Ready • Transformers.js (all-MiniLM-L6-v2) Running Locally';
+        progressLabel.textContent = '100% Ready';
+        progressBar.style.width = '100%';
+        telemetryState.textContent = 'Model: Xenova/all-MiniLM-L6-v2 (Active)';
+      } catch (err) {
+        console.warn('Transformers.js fallback activated:', err);
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
+        statusText.textContent = 'Offline Hybrid Semantic Mode Active (Model CDN unreachable)';
+        progressLabel.textContent = 'Fallback';
+        telemetryState.textContent = 'Model: Hybrid Keyword-Vector Fallback';
+      }
+    }
+
+    // Cosine Similarity between two normalized Float32Arrays
+    function cosineSimilarity(vecA, vecB) {
+      let dot = 0.0;
+      for (let i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+      }
+      return dot;
+    }
+
+    // ---------------------------------------------------------------------
+    // 4. NATURAL LANGUAGE CONSTRAINT & INTENT PARSER
+    // ---------------------------------------------------------------------
+    function parseCustomerQuery(rawQuery) {
+      const q = rawQuery.toLowerCase();
+      const intents = [];
+
+      // 1. Extract Budget from text (e.g., "under 150", "₱130", "max 200", "140 pesos")
+      let detectedBudget = null;
+      const budgetMatch = q.match(/(?:under|below|max|less than|budget|₱|php|p)\s*(\d{2,3})|(\d{2,3})\s*(?:pesos|php|budget|or less)/i);
+      if (budgetMatch) {
+        detectedBudget = parseInt(budgetMatch[1] || budgetMatch[2], 10);
+      } else if (currentBudgetCap < 250) {
+        detectedBudget = currentBudgetCap;
+      }
+
+      if (detectedBudget) {
+        intents.push({ label: `Budget ≤ ₱${detectedBudget}`, type: 'budget', value: detectedBudget });
+      }
+
+      // 2. Detect Caffeine Constraints
+      const noCoffee = /(no coffee|without coffee|caffeine[- ]?free|non[- ]?coffee|walang kape|hindi kape)/i.test(q);
+      const wantStrongCoffee = /(strong|matapang|espresso|all[- ]?nighter|thesis|coding|pampagising|caffeine|kape)/i.test(q) && !noCoffee;
+      if (noCoffee) intents.push({ label: 'Caffeine-Free / No Coffee', type: 'diet' });
+      if (wantStrongCoffee) intents.push({ label: 'Caffeinated / Energy Boost', type: 'diet' });
+
+      // 3. Detect Temperature Preferences
+      const wantCold = /(cold|iced|ice|chilled|malamig|hot weather|hot afternoon|summer|init|refreshing)/i.test(q);
+      const wantHot = /(hot drink|warm|cozy|comfort|rainy|mainit na inumin)/i.test(q) && !/(hot weather|hot afternoon|hot day)/i.test(q);
+      if (wantCold) intents.push({ label: 'Cold / Iced', type: 'temp' });
+      if (wantHot) intents.push({ label: 'Hot / Warm', type: 'temp' });
+
+      // 4. Detect Flavor & Food/Combo Requests
+      const wantSweet = /(sweet|matamis|creamy|dessert|caramel|chocolate|tsokolate)/i.test(q);
+      const wantFruity = /(fruity|fruit|mango|strawberry|calamansi|citrus|tropical|refreshing)/i.test(q);
+      const wantCombo = /(pastry|snack|food|combo|bread|cake|ensaymada|merienda|eat|gutom)/i.test(q);
+
+      if (wantSweet) intents.push({ label: 'Sweet / Indulgent', type: 'flavor' });
+      if (wantFruity) intents.push({ label: 'Fruity / Refreshing', type: 'flavor' });
+      if (wantCombo) intents.push({ label: 'Drink + Pastry Combo', type: 'combo' });
+
+      return {
+        raw: rawQuery,
+        budget: detectedBudget,
+        noCoffee,
+        wantStrongCoffee,
+        wantCold,
+        wantHot,
+        wantSweet,
+        wantFruity,
+        wantCombo,
+        intents
+      };
+    }
+
+    // ---------------------------------------------------------------------
+    // 5. RUN HYBRID AI RECOMMENDATION ENGINE
+    // ---------------------------------------------------------------------
+    window.runAIMatch = async function () {
+      const inputEl = document.getElementById('mood-input');
+      const query = inputEl.value.trim();
+
+      if (!query) {
+        showToast('Please type a craving or tap one of the sample prompts!', '💡');
+        inputEl.focus();
+        return;
+      }
+
+      const matchBtn = document.getElementById('match-btn');
+      matchBtn.disabled = true;
+      matchBtn.innerHTML = `<span class="animate-spin">⏳</span> Analyzing Mood...`;
+
+      const startTime = performance.now();
+      const parsed = parseCustomerQuery(query);
+
+      // Compute Query Embedding if Transformers.js is ready
+      let queryVector = null;
+      if (modelReady && embedder) {
+        const out = await embedder(query, { pooling: 'mean', normalize: true });
+        queryVector = out.data;
+      }
+
+      // Score every item in the Kape Kapampangan catalog
+      const scoredItems = MENU_ITEMS.map((item) => {
+        // A. Semantic Similarity Score (0 to 1)
+        let semanticRaw = 0.45;
+        if (queryVector && menuEmbeddings[item.id]) {
+          // MiniLM cosine similarity typically ranges 0.15 - 0.75 for short queries
+          const cos = cosineSimilarity(queryVector, menuEmbeddings[item.id]);
+          semanticRaw = Math.max(0, Math.min(1, (cos - 0.10) / 0.60));
+        } else {
+          // Fallback lexical overlap if model is still downloading
+          const words = query.toLowerCase().split(/\W+/);
+          const hits = words.filter(w => w.length > 2 && (item.description.toLowerCase().includes(w) || item.tags.includes(w))).length;
+          semanticRaw = Math.min(0.85, 0.35 + hits * 0.12);
+        }
+
+        // B. Constraint & Preference Alignment Adjustments
+        let constraintBonus = 0;
+        const reasons = [];
+
+        // Budget filter check
+        if (parsed.budget) {
+          if (item.price <= parsed.budget) {
+            constraintBonus += 0.12;
+            reasons.push(`Fits within ₱${parsed.budget} budget (₱${item.price})`);
+          } else {
+            constraintBonus -= 0.45; // Penalize over-budget items heavily
+          }
+        }
+
+        // No-coffee / Caffeine-free constraint
+        if (parsed.noCoffee) {
+          if (item.caffeine === 'Caffeine-Free') {
+            constraintBonus += 0.22;
+            reasons.push('100% Caffeine-free / No coffee');
+          } else if (item.caffeine === 'Light Tea Caffeine') {
+            constraintBonus += 0.08;
+            reasons.push('Non-coffee matcha alternative');
+          } else {
+            constraintBonus -= 0.55; // Exclude coffee when customer asks for no coffee
+          }
+        }
+
+        // Strong coffee constraint
+        if (parsed.wantStrongCoffee) {
+          if (item.category === 'Espresso & Coffee') {
+            constraintBonus += 0.18;
+            reasons.push('Real espresso/barako caffeine boost');
+          } else {
+            constraintBonus -= 0.25;
+          }
+        }
+
+        // Temperature preference
+        if (parsed.wantCold) {
+          if (item.temp === 'Iced' || item.temp === 'Chilled') {
+            constraintBonus += 0.14;
+            reasons.push('Served ice-cold & refreshing');
+          } else {
+            constraintBonus -= 0.20;
+          }
+        }
+        if (parsed.wantHot) {
+          if (item.temp === 'Hot' || item.temp === 'Warm') {
+            constraintBonus += 0.16;
+            reasons.push('Served warm & comforting');
+          } else {
+            constraintBonus -= 0.20;
+          }
+        }
+
+        // Flavor profile bonus
+        if (parsed.wantSweet && item.sweetness.toLowerCase().includes('sweet')) {
+          constraintBonus += 0.10;
+          reasons.push(`Matches "${item.sweetness}" profile`);
+        }
+        if (parsed.wantFruity && (item.category === 'Fruit Refreshers' || item.tags.includes('fruity'))) {
+          constraintBonus += 0.15;
+          reasons.push('Real fruit flavor notes');
+        }
+
+        // Exclude pastries from primary drink slot unless user asked for food/combo
+        if (!parsed.wantCombo && item.category === 'Kapampangan Pastries') {
+          constraintBonus -= 0.35;
+        }
+
+        const finalScore = Math.max(0.05, Math.min(0.99, semanticRaw * 0.65 + 0.20 + constraintBonus));
+        if (reasons.length === 0) {
+          reasons.push('High neural semantic match to your mood description');
+        }
+
+        return {
+          ...item,
+          semanticPct: Math.round(semanticRaw * 100),
+          constraintBonusPct: Math.round(constraintBonus * 100),
+          finalPct: Math.round(finalScore * 100),
+          reasons
+        };
+      });
+
+      // Sort highest score first
+      scoredItems.sort((a, b) => b.finalPct - a.finalPct);
+
+      const elapsedMs = Math.max(8, Math.round(performance.now() - startTime));
+      renderRecommendations(scoredItems, parsed, elapsedMs);
+      updateTelemetryTable(scoredItems);
+
+      matchBtn.disabled = false;
+      matchBtn.innerHTML = `<span>✨ Match My Mood with AI</span>`;
+    };
+
+    // ---------------------------------------------------------------------
+    // 6. RENDER RECOMMENDATIONS, COMBO BANNER & TELEMETRY
+    // ---------------------------------------------------------------------
+    function renderRecommendations(scoredItems, parsed, elapsedMs) {
+      const resultsSection = document.getElementById('results-section');
+      const intentsContainer = document.getElementById('detected-intents');
+      const inferenceBadge = document.getElementById('inference-time-badge');
+      const engineLabel = document.getElementById('engine-used-label');
+      const grid = document.getElementById('recommendations-grid');
+      const comboBanner = document.getElementById('combo-banner');
+
+      resultsSection.classList.remove('hidden');
+      inferenceBadge.textContent = `Inference: ${elapsedMs}ms`;
+      engineLabel.textContent = modelReady
+        ? 'Transformers.js (all-MiniLM-L6-v2)'
+        : 'Hybrid Semantic Fallback';
+
+      // Render Detected Intent Pills
+      if (parsed.intents.length > 0) {
+        intentsContainer.innerHTML = parsed.intents
+          .map(
+            (i) =>
+              `<span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white text-espresso-900 border border-pandan-500/30 shadow-2xs">✓ ${i.label}</span>`
+          )
+          .join('');
+      } else {
+        intentsContainer.innerHTML = `<span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-white text-espresso-800 border border-cream-300">Open Mood Semantic Search</span>`;
+      }
+
+      // Smart Combo Pairing if user requested pastry/food + drink
+      if (parsed.wantCombo) {
+        const bestDrink = scoredItems.find((i) => i.category !== 'Kapampangan Pastries');
+        const bestPastry = scoredItems.find((i) => i.category === 'Kapampangan Pastries');
+        if (bestDrink && bestPastry) {
+          const comboTotal = bestDrink.price + bestPastry.price;
+          const withinBudget = !parsed.budget || comboTotal <= parsed.budget;
+          comboBanner.classList.remove('hidden');
+          comboBanner.innerHTML = `
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-200/80 px-2.5 py-0.5 rounded-full">
+                  ✨ Smart Merienda Combo Pairing
+                </span>
+                <h4 class="font-serif text-lg font-bold text-espresso-900 mt-1">
+                  ${bestDrink.emoji} ${bestDrink.name} + ${bestPastry.emoji} ${bestPastry.name}
+                </h4>
+                <p class="text-xs text-espresso-700 mt-0.5">
+                  Combined Price: <strong class="text-espresso-900">₱${comboTotal}</strong>
+                  ${withinBudget ? '• <span class="text-pandan-700 font-semibold">Fits your budget!</span>' : '• Slightly above target budget'}
+                </p>
+              </div>
+              <button onclick="addComboToBasket('${bestDrink.id}', '${bestPastry.id}')" class="shrink-0 px-4 py-2.5 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-white text-xs font-semibold transition shadow-sm">
+                + Add Both to Tray (₱${comboTotal})
+              </button>
+            </div>
+          `;
+        }
+      } else {
+        comboBanner.classList.add('hidden');
+      }
+
+      // Render Top 3 Matched Cards
+      const top3 = scoredItems.slice(0, 3);
+      grid.innerHTML = top3
+        .map((item, idx) => {
+          const isTopPick = idx === 0;
+          return `
+          <article class="bg-white rounded-3xl p-5 border-2 ${isTopPick ? 'border-pandan-500 shadow-md' : 'border-cream-300 shadow-xs'} flex flex-col justify-between relative transition hover:-translate-y-0.5">
+            ${isTopPick ? `<div class="absolute -top-3 left-5 bg-pandan-600 text-white text-[11px] font-bold px-3 py-0.5 rounded-full shadow-xs">★ Best AI Match</div>` : ''}
+            
+            <div>
+              <div class="flex items-start justify-between gap-2 mt-1">
+                <div class="w-12 h-12 rounded-2xl bg-cream-100 border border-cream-200 flex items-center justify-center text-2xl shrink-0">
+                  ${item.emoji}
+                </div>
+                <div class="text-right">
+                  <span class="inline-block text-xs font-bold px-2.5 py-1 rounded-xl ${item.finalPct >= 80 ? 'bg-pandan-100 text-pandan-700' : 'bg-amber-100 text-amber-900'}">
+                    ${item.finalPct}% AI Match
+                  </span>
+                  <div class="font-serif text-xl font-bold text-espresso-900 mt-1">₱${item.price}</div>
+                </div>
+              </div>
+
+              <h4 class="font-serif text-lg font-bold text-espresso-900 mt-3 leading-snug">${item.name}</h4>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-cream-200 text-espresso-800">${item.temp}</span>
+                <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-cream-200 text-espresso-800">${item.caffeine}</span>
+              </div>
+
+              <p class="text-xs text-espresso-700 mt-2.5 leading-relaxed">
+                ${item.description}
+              </p>
+
+              <!-- AI Explainability Box -->
+              <div class="mt-3 p-2.5 rounded-xl bg-cream-100/90 border border-cream-200">
+                <p class="text-[11px] font-bold text-espresso-800 mb-1">Why AI picked this:</p>
+                <ul class="text-[11px] text-espresso-700 space-y-0.5">
+                  ${item.reasons.slice(0, 2).map(r => `<li>• ${r}</li>`).join('')}
+                  <li class="text-[10px] font-mono text-espresso-600 pt-0.5">Vector similarity: ${item.semanticPct}%</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              onclick="addToBasket('${item.id}')"
+              class="mt-4 w-full py-2.5 px-4 rounded-xl bg-espresso-900 hover:bg-espresso-800 active:scale-[0.99] text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>+ Add to Order Tray</span>
+            </button>
+          </article>
+        `;
+        })
+        .join('');
+
+      resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function updateTelemetryTable(scoredItems) {
+      const tbody = document.getElementById('telemetry-table-body');
+      tbody.innerHTML = scoredItems
+        .slice(0, 6)
+        .map(
+          (item) => `
+          <tr>
+            <td class="py-2 font-medium">${item.emoji} ${item.name} <span class="text-espresso-500">(₱${item.price})</span></td>
+            <td class="py-2 font-mono">${item.semanticPct}%</td>
+            <td class="py-2 font-mono ${item.constraintBonusPct >= 0 ? 'text-pandan-700' : 'text-red-600'}">
+              ${item.constraintBonusPct >= 0 ? '+' : ''}${item.constraintBonusPct}%
+            </td>
+            <td class="py-2 font-bold">${item.finalPct}%</td>
+          </tr>
+        `
+        )
+        .join('');
+    }
+
+    // ---------------------------------------------------------------------
+    // 7. FULL MENU RENDERING & FILTERING
+    // ---------------------------------------------------------------------
+    function renderFullMenu(category = 'All') {
+      const grid = document.getElementById('full-menu-grid');
+      const filtered = category === 'All' ? MENU_ITEMS : MENU_ITEMS.filter((i) => i.category === category);
+
+      grid.innerHTML = filtered
+        .map(
+          (item) => `
+        <div class="rounded-2xl p-4 bg-cream-50 border border-cream-300 flex flex-col justify-between">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-2xl">${item.emoji}</span>
+              <span class="font-serif font-bold text-lg text-espresso-900">₱${item.price}</span>
+            </div>
+            <h4 class="font-serif font-bold text-base text-espresso-900 mt-2">${item.name}</h4>
+            <p class="text-[11px] font-semibold text-pandan-700 mt-0.5">${item.category} • ${item.temp} • ${item.caffeine}</p>
+            <p class="text-xs text-espresso-700 mt-2 leading-relaxed">${item.description}</p>
+          </div>
+          <button onclick="addToBasket('${item.id}')" class="mt-3 w-full py-2 rounded-xl bg-white hover:bg-espresso-900 hover:text-white text-espresso-900 border border-espresso-800/30 text-xs font-semibold transition">
+            + Add to Tray (₱${item.price})
+          </button>
+        </div>
+      `
+        )
+        .join('');
+    }
+
+    window.filterFullMenu = function (category) {
+      document.querySelectorAll('.menu-filter-btn').forEach((btn) => {
+        if (btn.textContent.includes(category) || (category === 'All' && btn.textContent.startsWith('All'))) {
+          btn.className = 'menu-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-espresso-900 text-white';
+        } else {
+          btn.className = 'menu-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-cream-200 text-espresso-800 hover:bg-cream-300';
+        }
+      });
+      renderFullMenu(category);
+    };
+
+    // ---------------------------------------------------------------------
+    // 8. ORDER TRAY / BASKET & UI HELPERS
+    // ---------------------------------------------------------------------
+    window.addToBasket = function (itemId) {
+      const item = MENU_ITEMS.find((i) => i.id === itemId);
+      if (!item) return;
+      basket.push(item);
+      updateBasketUI();
+      showToast(`Added ${item.name} (₱${item.price}) to tray`, '🛍️');
+    };
+
+    window.addComboToBasket = function (drinkId, pastryId) {
+      const drink = MENU_ITEMS.find((i) => i.id === drinkId);
+      const pastry = MENU_ITEMS.find((i) => i.id === pastryId);
+      if (drink) basket.push(drink);
+      if (pastry) basket.push(pastry);
+      updateBasketUI();
+      showToast(`Added ${drink.name} + ${pastry.name} combo!`, '✨');
+    };
+
+    window.removeFromBasket = function (index) {
+      basket.splice(index, 1);
+      updateBasketUI();
+    };
+
+    window.clearBasket = function () {
+      basket = [];
+      updateBasketUI();
+      showToast('Order tray cleared', '🗑️');
+    };
+
+    function updateBasketUI() {
+      const badge = document.getElementById('basket-badge');
+      const container = document.getElementById('order-items-container');
+      const totalEl = document.getElementById('order-total-price');
+
+      if (basket.length > 0) {
+        badge.classList.remove('hidden');
+        badge.textContent = basket.length;
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      if (basket.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-espresso-600">
+            <div class="text-4xl mb-2">☕</div>
+            <p class="text-sm font-semibold">Your café tray is empty</p>
+            <p class="text-xs mt-1">Use the AI Mood Matcher to find drinks & pastries that fit your vibe.</p>
+          </div>
+        `;
+        totalEl.textContent = '₱0';
+        return;
+      }
+
+      let total = 0;
+      container.innerHTML = basket
+        .map((item, idx) => {
+          total += item.price;
+          return `
+            <div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-cream-100 border border-cream-300">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">${item.emoji}</span>
+                <div>
+                  <p class="text-xs font-bold text-espresso-900">${item.name}</p>
+                  <p class="text-[11px] text-espresso-600">${item.temp} • ₱${item.price}</p>
+                </div>
+              </div>
+              <button onclick="removeFromBasket(${idx})" class="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg font-semibold">
+                Remove
+              </button>
+            </div>
+          `;
+        })
+        .join('');
+
+      totalEl.textContent = `₱${total}`;
+    }
+
+    window.toggleOrderDrawer = function () {
+      const drawer = document.getElementById('order-drawer');
+      const backdrop = document.getElementById('order-drawer-backdrop');
+      const isClosed = drawer.classList.contains('translate-x-full');
+      if (isClosed) {
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        drawer.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    };
+
+    window.copyOrderSummary = function () {
+      if (basket.length === 0) {
+        showToast('Add items to your tray first!', 'ℹ️');
+        return;
+      }
+      const total = basket.reduce((sum, i) => sum + i.price, 0);
+      const lines = [
+        'KAPE KAPAMPANGAN — ORDER SLIP (via KapeKaya AI)',
+        '---------------------------------------------',
+        ...basket.map((i, idx) => `${idx + 1}. ${i.name} (${i.temp}) - ₱${i.price}`),
+        '---------------------------------------------',
+        `TOTAL: ₱${total}`
+      ].join('\n');
+
+      copyToClipboardFallback(lines);
+      showToast('Order slip copied to clipboard!', '📋');
+    };
+
+    // ---------------------------------------------------------------------
+    // 9. NAVIGATION, SAMPLE PROMPTS & PTF50 USER FEEDBACK FORM
+    // ---------------------------------------------------------------------
+    window.switchTab = function (tabName) {
+      ['matcher', 'menu', 'defense'].forEach((t) => {
+        document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tabName);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500 text-espresso-950 transition shadow-sm';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-cream-200 hover:bg-espresso-800 transition flex items-center gap-1';
+        }
+      });
+    };
+
+    window.applySamplePrompt = function (text) {
+      document.getElementById('mood-input').value = text;
+      runAIMatch();
+    };
+
+    window.clearPrompt = function () {
+      document.getElementById('mood-input').value = '';
+      document.getElementById('mood-input').focus();
+    };
+
+    window.updateBudgetLabel = function (val) {
+      currentBudgetCap = parseInt(val, 10);
+      const label = document.getElementById('budget-display');
+      label.textContent = currentBudgetCap >= 250 ? 'Auto-detect from text (or ₱250)' : `Max ₱${currentBudgetCap}`;
+    };
+
+    function renderFeedbackLog() {
+      const container = document.getElementById('feedback-log-list');
+      container.innerHTML = feedbackEntries
+        .map(
+          (f, i) => `
+          <div class="p-3 rounded-xl bg-cream-100 border border-cream-300 text-xs space-y-1">
+            <div class="flex justify-between font-bold text-espresso-900">
+              <span>#${i + 1} • ${f.tester}</span>
+              <span class="text-pandan-700">Ease: ${f.q1}/5 • AI Helpful: ${f.q2}/5</span>
+            </div>
+            <p class="text-espresso-700"><strong>Confused by:</strong> ${f.q3}</p>
+            <p class="text-espresso-700"><strong>Suggested improvement:</strong> ${f.q4}</p>
+          </div>
+        `
+        )
+        .join('');
+    }
+
+    window.submitUserFeedback = function (e) {
+      e.preventDefault();
+      const entry = {
+        tester: document.getElementById('fb-tester').value.trim(),
+        q1: document.getElementById('fb-q1').value,
+        q2: document.getElementById('fb-q2').value,
+        q3: document.getElementById('fb-q3').value.trim(),
+        q4: document.getElementById('fb-q4').value.trim()
+      };
+      feedbackEntries.push(entry);
+      renderFeedbackLog();
+      e.target.reset();
+      showToast('User testing response recorded!', '✅');
+    };
+
+    window.copyFeedbackSummary = function () {
+      const text = [
+        'PTF50 USER TESTING FEEDBACK LOG — KapeKaya (Kape Kapampangan)',
+        '==============================================================',
+        ...feedbackEntries.map(
+          (f, idx) =>
+            `Tester ${idx + 1}: ${f.tester}\n- Easy to use (1-5): ${f.q1}/5\n- AI suggestion helpful (1-5): ${f.q2}/5\n- What confused them: ${f.q3}\n- Suggested improvement: ${f.q4}\n`
+        )
+      ].join('\n');
+      copyToClipboardFallback(text);
+      showToast('Feedback log copied for your PTF50 Report!', '📋');
+    };
+
+    function copyToClipboardFallback(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Copy failed', err);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    let toastTimeout = null;
+    function showToast(msg, icon = '✅') {
+      const banner = document.getElementById('toast-banner');
+      document.getElementById('toast-message').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      banner.classList.remove('hidden');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => banner.classList.add('hidden'), 3200);
+    }
+
+    // Allow pressing Enter (without Shift) inside textarea to trigger AI match
+    document.getElementById('mood-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        runAIMatch();
+      }
+    });
+
+    // Initial Bootstrap
+    renderFullMenu('All');
+    updateBasketUI();
+    renderFeedbackLog();
+    initAIModel();
+  </script>
+</body>
+</html>
